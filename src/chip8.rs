@@ -1,4 +1,4 @@
-struct Opcode {
+pub struct Opcode {
     code: u16,
     n: u8,
     nn: u8,
@@ -7,7 +7,7 @@ struct Opcode {
     y: u8,
 }
 impl Opcode {
-    fn new(code: u16) -> Opcode {
+    pub fn new(code: u16) -> Opcode {
         Opcode {
             code: code,
             n: (code & 0xf) as u8,
@@ -20,13 +20,13 @@ impl Opcode {
 }
 
 pub struct Chip8 {
-    registers: [u8; 16], // V
-    index: usize,        // I
+    pub registers: [u8; 16], // V
+    pub index: usize,        // I
     pub delay: u8,
     pub sound: u8,
-    program_counter: usize, // PC
-    stack_pointer: usize,   // SP
-    stack: [usize; 16],
+    pub program_counter: usize, // PC
+    pub stack_pointer: usize,   // SP
+    pub stack: [usize; 16],
     pub memory: [u8; 0xfff],
     pub screen_size: (u8, u8),
     pub screen: Vec<u8>,
@@ -239,74 +239,79 @@ impl Chip8 {
             self.has_drawn = false;
         }
 
+        let instruction = self.parse_opcode(&opcode);
+        instruction.1(self, opcode);
+
+        self.program_counter += 2;
+    }
+
+    pub fn parse_opcode(&self, opcode: &Opcode) -> (&'static str, fn(&mut Self, Opcode)) {
         match opcode.code {
-            0x00e0 => self.cls(opcode),
-            0x00ee => self.ret(opcode),
+            0x00e0 => ("cls", Self::cls),
+            0x00ee => ("ret", Self::ret),
             _ => match opcode.code >> 12 {
-                0x1 => self.jp(opcode),
-                0x2 => self.call(opcode),
-                0x3 => self.se(opcode),
-                0x4 => self.sne(opcode),
+                0x1 => ("jp", Self::jp),
+                0x2 => ("call", Self::call),
+                0x3 => ("se", Self::se),
+                0x4 => ("sne", Self::sne),
                 0x5 => match opcode.code & 0xf {
-                    0x0 => self.sey(opcode),
+                    0x0 => ("sey", Self::sey),
                     _ => panic!("Unknown opcode: {:#06x}", opcode.code),
                 },
-                0x6 => self.ld(opcode),
-                0x7 => self.add(opcode),
+                0x6 => ("ld", Self::ld),
+                0x7 => ("add", Self::add),
                 0x8 => match opcode.code & 0xf {
-                    0x0 => self.ldy(opcode),
-                    0x1 => self.or(opcode),
-                    0x2 => self.and(opcode),
-                    0x3 => self.xor(opcode),
-                    0x4 => self.addy(opcode),
-                    0x5 => self.sub(opcode),
+                    0x0 => ("ldy", Self::ldy),
+                    0x1 => ("or", Self::or),
+                    0x2 => ("and", Self::and),
+                    0x3 => ("xor", Self::xor),
+                    0x4 => ("addy", Self::addy),
+                    0x5 => ("sub", Self::sub),
                     0x6 => {
                         if self.other_mode {
-                            self.shr(opcode);
+                            ("shr", Self::shr)
                         } else {
-                            self.shry(opcode);
+                            ("shry", Self::shry)
                         }
                     }
-                    0x7 => self.subn(opcode),
+                    0x7 => ("subn", Self::subn),
                     0xe => {
                         if self.other_mode {
-                            self.shl(opcode);
+                            ("shl", Self::shl)
                         } else {
-                            self.shly(opcode);
+                            ("shly", Self::shly)
                         }
                     }
                     _ => panic!("Unknown opcode: {:#06x}", opcode.code),
                 },
                 0x9 => match opcode.code & 0xf {
-                    0x0 => self.sney(opcode),
+                    0x0 => ("sney", Self::sney),
                     _ => panic!("Unknown opcode: {:#06x}", opcode.code),
                 },
-                0xa => self.ldi(opcode),
-                0xb => self.jp0(opcode),
-                0xc => self.rnd(opcode),
-                0xd => self.drw(opcode),
+                0xa => ("ldi", Self::ldi),
+                0xb => ("jp0", Self::jp0),
+                0xc => ("rnd", Self::rnd),
+                0xd => ("drw", Self::drw),
                 0xe => match opcode.code & 0xff {
-                    0x9e => self.skp(opcode),
-                    0xa1 => self.skpn(opcode),
+                    0x9e => ("skp", Self::skp),
+                    0xa1 => ("skpn", Self::skpn),
                     _ => panic!("Unknown opcode: {:#06x}", opcode.code),
                 },
                 0xf => match opcode.code & 0xff {
-                    0x07 => self.ldxdt(opcode),
-                    0x0a => self.ldk(opcode),
-                    0x15 => self.lddt(opcode),
-                    0x18 => self.ldst(opcode),
-                    0x1e => self.addi(opcode),
-                    0x29 => self.ldf(opcode),
-                    0x33 => self.ldb(opcode),
-                    0x55 => self.ldix(opcode),
-                    0x65 => self.ldxi(opcode),
+                    0x07 => ("ldxdt", Self::ldxdt),
+                    0x0a => ("ldk", Self::ldk),
+                    0x15 => ("lddt", Self::lddt),
+                    0x18 => ("ldst", Self::ldst),
+                    0x1e => ("addi", Self::addi),
+                    0x29 => ("ldf", Self::ldf),
+                    0x33 => ("ldb", Self::ldb),
+                    0x55 => ("ldix", Self::ldix),
+                    0x65 => ("ldxi", Self::ldxi),
                     _ => panic!("Unknown opcode: {:#06x}", opcode.code),
                 },
                 _ => panic!("Unknown opcode: {:#06x}", opcode.code),
             },
         }
-
-        self.program_counter += 2;
     }
 
     // 00e0
