@@ -33,6 +33,7 @@ pub struct Chip8 {
     pub other_mode: bool,
     pub keys: [bool; 16],
     pub has_drawn: bool,
+    pub has_handled_draw: bool,
 }
 
 impl Chip8 {
@@ -52,6 +53,7 @@ impl Chip8 {
             other_mode: false,
             keys: [false; 16],
             has_drawn: false,
+            has_handled_draw: false,
         };
         chip8.screen.resize((64 / 8) * 32, 0);
 
@@ -233,6 +235,10 @@ impl Chip8 {
         let opcode = Opcode::new(code);
         // println!("{:#06x}: {:#06x}", self.program_counter, code);
 
+        if self.has_handled_draw {
+            self.has_drawn = false;
+        }
+
         match opcode.code {
             0x00e0 => self.cls(opcode),
             0x00ee => self.ret(opcode),
@@ -306,6 +312,7 @@ impl Chip8 {
     // 00e0
     fn cls(&mut self, _opcode: Opcode) {
         self.has_drawn = true;
+        self.has_handled_draw = false;
         for pixel in self.screen.iter_mut() {
             *pixel = 0;
         }
@@ -475,6 +482,7 @@ impl Chip8 {
     // dxyn
     fn drw(&mut self, opcode: Opcode) {
         self.has_drawn = true;
+        self.has_handled_draw = false;
         self.registers[0xf] = 0;
         for i in 0..opcode.n {
             let y = self.registers[opcode.y as usize] + i;
