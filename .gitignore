@@ -2,3 +2,5 @@
 **/*.rs.bk
 roms
 .vscode
+Cargo.lock
+_git*
