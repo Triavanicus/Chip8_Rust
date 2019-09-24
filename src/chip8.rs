@@ -6,6 +6,7 @@ pub struct Opcode {
     x: u8,
     y: u8,
 }
+
 impl Opcode {
     pub fn new(code: u16) -> Opcode {
         Opcode {
@@ -36,8 +37,9 @@ pub struct Chip8 {
     pub has_handled_draw: bool,
 }
 
+type Instruction = fn(&mut Chip8, &Opcode);
+
 impl Chip8 {
-    #[rustfmt::skip]
     pub fn new() -> Chip8 {
         let mut chip8 = Chip8 {
             registers: [0; 16],
@@ -57,167 +59,70 @@ impl Chip8 {
         };
         chip8.screen.resize((64 / 8) * 32, 0);
 
-        let mut letter: [u8;5];
-
-        // 0
-        letter = [
-            0b11110000,
-            0b10010000,
-            0b10010000,
-            0b10010000,
-            0b11110000
-            ];
-        chip8.add_letter(0x0, &letter);
-
-        // 1
-        letter = [
-            0b00100000,
-            0b01100000,
-            0b00100000,
-            0b00100000,
-            0b01110000
-            ];
-        chip8.add_letter(0x1, &letter);
-
-        // 2
-        letter = [
-            0b11110000,
-            0b00010000,
-            0b11110000,
-            0b10000000,
-            0b11110000
-            ];
-        chip8.add_letter(0x2, &letter);
-
-        // 3
-        letter = [
-            0b11110000,
-            0b00010000,
-            0b11110000,
-            0b00010000,
-            0b11110000
-            ];
-        chip8.add_letter(0x3, &letter);
-
-        // 4
-        letter = [
-            0b10010000,
-            0b10010000,
-            0b11110000,
-            0b00010000,
-            0b00010000
-            ];
-        chip8.add_letter(0x4, &letter);
-
-        // 5
-        letter = [
-            0b11110000,
-            0b10000000,
-            0b11110000,
-            0b00010000,
-            0b11110000
-            ];
-        chip8.add_letter(0x5, &letter);
-
-        // 6
-        letter = [
-            0b11110000,
-            0b10000000,
-            0b11110000,
-            0b10010000,
-            0b11110000
-            ];
-        chip8.add_letter(0x6, &letter);
-
-        // 7
-        letter = [
-            0b11110000,
-            0b00010000,
-            0b00100000,
-            0b01000000,
-            0b01000000
-            ];
-        chip8.add_letter(0x7, &letter);
-
-        // 8
-        letter = [
-            0b11110000,
-            0b10010000,
-            0b11110000,
-            0b10010000,
-            0b11110000
-            ];
-        chip8.add_letter(0x8, &letter);
-
-        // 9
-        letter = [
-            0b11110000,
-            0b10010000,
-            0b11110000,
-            0b00010000,
-            0b11110000
-            ];
-        chip8.add_letter(0x9, &letter);
-
-        // a
-        letter = [
-            0b11110000,
-            0b10010000,
-            0b11110000,
-            0b10010000,
-            0b10010000
-            ];
-        chip8.add_letter(0xa, &letter);
-
-        // b
-        letter = [
-            0b11100000,
-            0b10010000,
-            0b11100000,
-            0b10010000,
-            0b11100000
-            ];
-        chip8.add_letter(0xb, &letter);
-
-        // c
-        letter = [
-            0b11110000,
-            0b10000000,
-            0b10000000,
-            0b10000000,
-            0b11110000
-            ];
-        chip8.add_letter(0xc, &letter);
-
-        // d
-        letter = [
-            0b11100000,
-            0b10010000,
-            0b10010000,
-            0b10010000,
-            0b11100000
-            ];
-        chip8.add_letter(0xd, &letter);
-
-        // e
-        letter = [
-            0b11110000,
-            0b10000000,
-            0b11110000,
-            0b10000000,
-            0b11110000
-            ];
-        chip8.add_letter(0xe, &letter);
-
-        // f
-        letter = [
-            0b11110000,
-            0b10000000,
-            0b11110000,
-            0b10000000,
-            0b10000000
-            ];
-        chip8.add_letter(0xf, &letter);
+        chip8.add_letter(
+            0x0,
+            &[0b11110000, 0b10010000, 0b10010000, 0b10010000, 0b11110000],
+        );
+        chip8.add_letter(
+            0x1,
+            &[0b00100000, 0b01100000, 0b00100000, 0b00100000, 0b01110000],
+        );
+        chip8.add_letter(
+            0x2,
+            &[0b11110000, 0b00010000, 0b11110000, 0b10000000, 0b11110000],
+        );
+        chip8.add_letter(
+            0x3,
+            &[0b11110000, 0b00010000, 0b11110000, 0b00010000, 0b11110000],
+        );
+        chip8.add_letter(
+            0x4,
+            &[0b10010000, 0b10010000, 0b11110000, 0b00010000, 0b00010000],
+        );
+        chip8.add_letter(
+            0x5,
+            &[0b11110000, 0b10000000, 0b11110000, 0b00010000, 0b11110000],
+        );
+        chip8.add_letter(
+            0x6,
+            &[0b11110000, 0b10000000, 0b11110000, 0b10010000, 0b11110000],
+        );
+        chip8.add_letter(
+            0x7,
+            &[0b11110000, 0b00010000, 0b00100000, 0b01000000, 0b01000000],
+        );
+        chip8.add_letter(
+            0x8,
+            &[0b11110000, 0b10010000, 0b11110000, 0b10010000, 0b11110000],
+        );
+        chip8.add_letter(
+            0x9,
+            &[0b11110000, 0b10010000, 0b11110000, 0b00010000, 0b11110000],
+        );
+        chip8.add_letter(
+            0xa,
+            &[0b11110000, 0b10010000, 0b11110000, 0b10010000, 0b10010000],
+        );
+        chip8.add_letter(
+            0xb,
+            &[0b11100000, 0b10010000, 0b11100000, 0b10010000, 0b11100000],
+        );
+        chip8.add_letter(
+            0xc,
+            &[0b11110000, 0b10000000, 0b10000000, 0b10000000, 0b11110000],
+        );
+        chip8.add_letter(
+            0xd,
+            &[0b11100000, 0b10010000, 0b10010000, 0b10010000, 0b11100000],
+        );
+        chip8.add_letter(
+            0xe,
+            &[0b11110000, 0b10000000, 0b11110000, 0b10000000, 0b11110000],
+        );
+        chip8.add_letter(
+            0xf,
+            &[0b11110000, 0b10000000, 0b11110000, 0b10000000, 0b10000000],
+        );
 
         chip8
     }
@@ -230,22 +135,43 @@ impl Chip8 {
     }
 
     pub fn clock(&mut self) {
-        let code: u16 = (self.memory[self.program_counter] as u16) << 8
-            | self.memory[self.program_counter + 1] as u16;
-        let opcode = Opcode::new(code);
+        let opcode = self.get_current_opcode();
         // println!("{:#06x}: {:#06x}", self.program_counter, code);
 
         if self.has_handled_draw {
             self.has_drawn = false;
         }
 
-        let instruction = self.parse_opcode(&opcode);
-        instruction.1(self, opcode);
+        self.get_instruction(&opcode)(self, &opcode);
 
         self.program_counter += 2;
     }
 
-    pub fn parse_opcode(&self, opcode: &Opcode) -> (&'static str, fn(&mut Self, Opcode)) {
+    fn get_current_opcode(&self) -> Opcode {
+        let code = (self.memory[self.program_counter] as u16) << 8
+            | self.memory[self.program_counter + 1] as u16;
+        Opcode::new(code)
+    }
+
+    fn get_instruction(&self, opcode: &Opcode) -> Instruction {
+        self.parse_opcode(&opcode).1
+    }
+
+    pub fn get_relative_instruction(&self, relative: i32) -> &'static str {
+        let absolute = if relative < 0 { -relative } else { relative } as usize * 2;
+        let relative_address = if relative < 0 {
+            self.program_counter - absolute
+        } else {
+            self.program_counter + absolute
+        };
+        let code =
+            (self.memory[relative_address] as u16) << 8 | self.memory[relative_address + 1] as u16;
+        let opcode = Opcode::new(code);
+        self.parse_opcode(&opcode).0
+    }
+
+    pub fn nai(&mut self, _opcode: &Opcode) {}
+    pub fn parse_opcode(&self, opcode: &Opcode) -> (&'static str, Instruction) {
         match opcode.code {
             0x00e0 => ("cls", Self::cls),
             0x00ee => ("ret", Self::ret),
@@ -256,7 +182,7 @@ impl Chip8 {
                 0x4 => ("sne", Self::sne),
                 0x5 => match opcode.code & 0xf {
                     0x0 => ("sey", Self::sey),
-                    _ => panic!("Unknown opcode: {:#06x}", opcode.code),
+                    _ => ("nai", Self::nai),
                 },
                 0x6 => ("ld", Self::ld),
                 0x7 => ("add", Self::add),
@@ -282,11 +208,11 @@ impl Chip8 {
                             ("shly", Self::shly)
                         }
                     }
-                    _ => panic!("Unknown opcode: {:#06x}", opcode.code),
+                    _ => ("nai", Self::nai),
                 },
                 0x9 => match opcode.code & 0xf {
                     0x0 => ("sney", Self::sney),
-                    _ => panic!("Unknown opcode: {:#06x}", opcode.code),
+                    _ => ("nai", Self::nai),
                 },
                 0xa => ("ldi", Self::ldi),
                 0xb => ("jp0", Self::jp0),
@@ -295,7 +221,7 @@ impl Chip8 {
                 0xe => match opcode.code & 0xff {
                     0x9e => ("skp", Self::skp),
                     0xa1 => ("skpn", Self::skpn),
-                    _ => panic!("Unknown opcode: {:#06x}", opcode.code),
+                    _ => ("nai", Self::nai),
                 },
                 0xf => match opcode.code & 0xff {
                     0x07 => ("ldxdt", Self::ldxdt),
@@ -307,15 +233,15 @@ impl Chip8 {
                     0x33 => ("ldb", Self::ldb),
                     0x55 => ("ldix", Self::ldix),
                     0x65 => ("ldxi", Self::ldxi),
-                    _ => panic!("Unknown opcode: {:#06x}", opcode.code),
+                    _ => ("nai", Self::nai),
                 },
-                _ => panic!("Unknown opcode: {:#06x}", opcode.code),
+                _ => ("nai", Self::nai),
             },
         }
     }
 
     // 00e0
-    fn cls(&mut self, _opcode: Opcode) {
+    fn cls(&mut self, _opcode: &Opcode) {
         self.has_drawn = true;
         self.has_handled_draw = false;
         for pixel in self.screen.iter_mut() {
@@ -324,77 +250,77 @@ impl Chip8 {
     }
 
     // 00ee
-    fn ret(&mut self, _opcode: Opcode) {
+    fn ret(&mut self, _opcode: &Opcode) {
         self.program_counter = self.stack[self.stack_pointer];
         self.stack_pointer -= 1;
     }
 
     // 1nnn
-    fn jp(&mut self, opcode: Opcode) {
+    fn jp(&mut self, opcode: &Opcode) {
         self.program_counter = opcode.nnn as usize - 2;
     }
 
     // 2nnn
-    fn call(&mut self, opcode: Opcode) {
+    fn call(&mut self, opcode: &Opcode) {
         self.stack_pointer += 1;
         self.stack[self.stack_pointer] = self.program_counter;
         self.program_counter = opcode.nnn as usize - 2;
     }
 
     // 3xnn
-    fn se(&mut self, opcode: Opcode) {
+    fn se(&mut self, opcode: &Opcode) {
         if self.registers[opcode.x as usize] == opcode.nn {
             self.program_counter += 2;
         }
     }
 
     // 4xnn
-    fn sne(&mut self, opcode: Opcode) {
+    fn sne(&mut self, opcode: &Opcode) {
         if self.registers[opcode.x as usize] != opcode.nn {
             self.program_counter += 2;
         }
     }
 
     // 5xy0
-    fn sey(&mut self, opcode: Opcode) {
+    fn sey(&mut self, opcode: &Opcode) {
         if self.registers[opcode.x as usize] == self.registers[opcode.y as usize] {
             self.program_counter += 2;
         }
     }
 
     // 6xnn
-    fn ld(&mut self, opcode: Opcode) {
+    fn ld(&mut self, opcode: &Opcode) {
         self.registers[opcode.x as usize] = opcode.nn;
     }
 
     // 7xnn
-    fn add(&mut self, opcode: Opcode) {
+    fn add(&mut self, opcode: &Opcode) {
         let x = &mut self.registers[opcode.x as usize];
         *x = x.wrapping_add(opcode.nn);
     }
 
     // 8xy0
-    fn ldy(&mut self, opcode: Opcode) {
+    fn ldy(&mut self, opcode: &Opcode) {
         self.registers[opcode.x as usize] = self.registers[opcode.y as usize];
     }
 
     // 8xy1
-    fn or(&mut self, opcode: Opcode) {
+    fn or(&mut self, opcode: &Opcode) {
         self.registers[opcode.x as usize] |= self.registers[opcode.y as usize];
     }
 
     // 8xy2
-    fn and(&mut self, opcode: Opcode) {
+    fn and(&mut self, opcode: &Opcode) {
         self.registers[opcode.x as usize] &= self.registers[opcode.y as usize];
     }
 
     // 8xy3
-    fn xor(&mut self, opcode: Opcode) {
+    fn xor(&mut self, opcode: &Opcode) {
         self.registers[opcode.x as usize] ^= self.registers[opcode.y as usize];
     }
 
     // 8xy4
-    fn addy(&mut self, opcode: Opcode) {
+    fn addy(&mut self, opcode: &Opcode) {
         self.registers[0xf] = 0;
         let result =
             self.registers[opcode.x as usize].overflowing_add(self.registers[opcode.y as usize]);
@@ -405,7 +331,7 @@ impl Chip8 {
     }
 
     // 8xy5
-    fn sub(&mut self, opcode: Opcode) {
+    fn sub(&mut self, opcode: &Opcode) {
         self.registers[0xf] = 0;
         let result =
             self.registers[opcode.x as usize].overflowing_sub(self.registers[opcode.y as usize]);
@@ -416,7 +342,7 @@ impl Chip8 {
     }
 
     // 8x06
-    fn shr(&mut self, opcode: Opcode) {
+    fn shr(&mut self, opcode: &Opcode) {
         self.registers[0xf] = 0;
         if self.registers[opcode.x as usize] & 0b1 == 1 {
             self.registers[0xf] = 1;
@@ -425,7 +351,7 @@ impl Chip8 {
     }
 
     // 8xy6
-    fn shry(&mut self, opcode: Opcode) {
+    fn shry(&mut self, opcode: &Opcode) {
         self.registers[0xf] = 0;
         if self.registers[opcode.y as usize] & 0b1 == 1 {
             self.registers[0xf] = 1;
@@ -434,7 +360,7 @@ impl Chip8 {
     }
 
     // 8xy7
-    fn subn(&mut self, opcode: Opcode) {
+    fn subn(&mut self, opcode: &Opcode) {
         self.registers[0xf] = 0;
         let result =
             self.registers[opcode.y as usize].overflowing_sub(self.registers[opcode.x as usize]);
@@ -445,7 +371,7 @@ impl Chip8 {
     }
 
     // 8x0e
-    fn shl(&mut self, opcode: Opcode) {
+    fn shl(&mut self, opcode: &Opcode) {
         self.registers[0xf] = 0;
         if self.registers[opcode.x as usize] & 0b10000000 != 0 {
             self.registers[0xf] = 1;
@@ -454,7 +380,7 @@ impl Chip8 {
     }
 
     // 8xye
-    fn shly(&mut self, opcode: Opcode) {
+    fn shly(&mut self, opcode: &Opcode) {
         self.registers[0xf] = 0;
         if self.registers[opcode.y as usize] & 0b10000000 != 0 {
             self.registers[0xf] = 1;
@@ -463,29 +389,29 @@ impl Chip8 {
     }
 
     // 9xy0
-    fn sney(&mut self, opcode: Opcode) {
+    fn sney(&mut self, opcode: &Opcode) {
         if self.registers[opcode.x as usize] != self.registers[opcode.y as usize] {
             self.program_counter += 2;
         }
     }
 
     // annn
-    fn ldi(&mut self, opcode: Opcode) {
+    fn ldi(&mut self, opcode: &Opcode) {
         self.index = opcode.nnn as usize;
     }
 
     // bnnn
-    fn jp0(&mut self, opcode: Opcode) {
+    fn jp0(&mut self, opcode: &Opcode) {
         self.program_counter = opcode.nnn as usize + self.registers[0] as usize - 2;
     }
 
     // cxnn
-    fn rnd(&mut self, opcode: Opcode) {
+    fn rnd(&mut self, opcode: &Opcode) {
         self.registers[opcode.x as usize] = rand::random::<u8>() & opcode.nn;
     }
 
     // dxyn
-    fn drw(&mut self, opcode: Opcode) {
+    fn drw(&mut self, opcode: &Opcode) {
         self.has_drawn = true;
         self.has_handled_draw = false;
         self.registers[0xf] = 0;
@@ -516,26 +442,26 @@ impl Chip8 {
     }
 
     // ex9e
-    fn skp(&mut self, opcode: Opcode) {
+    fn skp(&mut self, opcode: &Opcode) {
         if self.keys[self.registers[opcode.x as usize] as usize] {
             self.program_counter += 2;
         }
     }
 
     // exa1
-    fn skpn(&mut self, opcode: Opcode) {
+    fn skpn(&mut self, opcode: &Opcode) {
         if !self.keys[self.registers[opcode.x as usize] as usize] {
             self.program_counter += 2;
         }
     }
 
     // fx07
-    fn ldxdt(&mut self, opcode: Opcode) {
+    fn ldxdt(&mut self, opcode: &Opcode) {
         self.registers[opcode.x as usize] = self.delay;
     }
 
     // fx0a
-    fn ldk(&mut self, opcode: Opcode) {
+    fn ldk(&mut self, opcode: &Opcode) {
         let mut wait = true;
 
         for i in 0..=0xf {
@@ -552,41 +478,41 @@ impl Chip8 {
     }
 
     // fx15
-    fn lddt(&mut self, opcode: Opcode) {
+    fn lddt(&mut self, opcode: &Opcode) {
         self.delay = self.registers[opcode.x as usize];
     }
 
     // fx18
-    fn ldst(&mut self, opcode: Opcode) {
+    fn ldst(&mut self, opcode: &Opcode) {
         self.sound = self.registers[opcode.x as usize];
     }
 
     // fx1e
-    fn addi(&mut self, opcode: Opcode) {
+    fn addi(&mut self, opcode: &Opcode) {
         self.index += self.registers[opcode.x as usize] as usize;
     }
 
     // fx29
-    fn ldf(&mut self, opcode: Opcode) {
+    fn ldf(&mut self, opcode: &Opcode) {
         self.index = self.registers[opcode.x as usize] as usize * 5;
     }
 
     // fx33
-    fn ldb(&mut self, opcode: Opcode) {
+    fn ldb(&mut self, opcode: &Opcode) {
         self.memory[self.index] = self.registers[opcode.x as usize] / 100;
         self.memory[self.index + 1] = (self.registers[opcode.x as usize] / 10) % 10;
         self.memory[self.index + 2] = self.registers[opcode.x as usize] % 10;
     }
 
     // fx55
-    fn ldix(&mut self, opcode: Opcode) {
+    fn ldix(&mut self, opcode: &Opcode) {
         for i in 0..=opcode.x {
             self.memory[self.index + i as usize] = self.registers[i as usize];
         }
     }
 
     // fx65
-    fn ldxi(&mut self, opcode: Opcode) {
+    fn ldxi(&mut self, opcode: &Opcode) {
         for i in 0..=opcode.x {
             self.registers[i as usize] = self.memory[self.index + i as usize];
         }
