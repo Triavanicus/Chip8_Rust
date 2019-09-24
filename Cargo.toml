@@ -8,5 +8,4 @@ edition = "2018"
 
 [dependencies]
 crossterm = "0.10.2"
-crossterm_input = "0.3.9"
-rand = "0.7.0"
+rand = "0.7.2"
